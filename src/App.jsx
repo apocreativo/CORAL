@@ -215,19 +215,19 @@ export default function App(){
   }, []);
 
   // ===== Polling de rev =====
-  usePolling(async ()=>{
-    try{
-      const r = await kvGet(REV_KEY);
-      if(typeof r === "number" && r !== rev){
-        setRev(r);
-        const cur = await kvGet(STATE_KEY);
-        if(cur){
-          setData(cur);
-          setSessionRevParam(String(r));
-        }
+usePolling(async () => {
+  try {
+    const r = Number(await kvGet(REV_KEY)) || 0;
+    if (r !== rev) {
+      setRev(r);
+      const cur = await kvGet(STATE_KEY);
+      if (cur) {
+        setData(cur);
+        setSessionRevParam(String(r)); // refresca mapas/logos
       }
-    }catch(e){ /* ignore */ }
-  }, 1500);
+    }
+  } catch (e) { /* ignora errores */ }
+}, 1500);
 
   // ===== Expiración de reservas pendientes =====
   useEffect(()=>{
