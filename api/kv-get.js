@@ -1,8 +1,9 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { kv } from "@vercel/kv";
+import { kv } from '@vercel/kv';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const { key } = req.query;
-  const value = await kv.get(key as string);
-  return res.status(200).json({ ok: true, value });
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).end();
+  const { key, value } = req.body || {};
+  await kv.set(key, value);
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(200).json({ ok: true });
 }
