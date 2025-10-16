@@ -350,44 +350,55 @@ async function reservar() {
   }
 
   // ===== WhatsApp =====
-  const openWhatsApp = () => {
-    const num = (data.payments.whatsapp || "").replace(/[^0-9]/g, "");
-    if(!num) return alert("Configura el número de WhatsApp en Admin → Pagos");
-    if(!selectedTent) return alert("Selecciona un toldo disponible primero");
-    if(!userForm.name || !userForm.phone){ alert("Completa tu nombre y teléfono."); return; }
-    const cur = data.payments.currency || "USD";
-    const extrasLines = cart.length
-      ? cart.map(x=> `• ${x.name} x${x.qty} — ${cur} ${(x.price * x.qty).toFixed(2)}`).join("\n")
-      : "• Sin extras";
-    const metodo = (payTab==="mp" ? "Mercado Pago" : payTab==="pm" ? "Pago Móvil" : payTab==="zelle" ? "Zelle" : "—");
-    const fecha = new Date(); const fechaTxt = fecha.toLocaleDateString() + " " + fecha.toLocaleTimeString();
-    const msg = [
-      `Hola 👋, me gustaría realizar una *reserva en ${data.brand?.name || "su establecimiento"}*.`,
-      "",
-      `*Código:* ${resCode}`,
-      `*Toldo:* #${selectedTent?.id}`,
-      `*Fecha/hora:* ${fechaTxt}`,
-      "",
-      "*Cliente*",
-      `• Nombre: ${userForm.name}`,
-      `• Teléfono (WhatsApp): ${userForm.phone}`,
-      userForm.email ? `• Email: ${userForm.email}` : null,
-      "",
-      "*Extras*",
-      extrasLines,
-      "",
-      `*Total estimado:* ${cur} ${total.toFixed(2)}`,
-      `*Método de pago:* ${metodo}`,
-      "",
-      "Adjunto mi comprobante. ¿Podrían confirmar la reserva cuando esté verificado? ✅",
-      "¡Muchas gracias! 🙌"
-    ].filter(Boolean).join("\n");
-    const txt = encodeURIComponent(msg);
-    
-  msg.push(`*Total:* ${data.payments.currency} ${total.toFixed(2)}${data.payments.usdToVES ? ` (Bs ${(total*(data.payments.usdToVES||0)).toFixed(2)})` : ""}`);
-window.open(`https://wa.me/${num}?text=${txt}`, "_blank");
-  };
+const openWhatsApp = () => {
+  const num = (data.payments.whatsapp || "").replace(/[^0-9]/g, "");
+  if (!num) return alert("Configura el número de WhatsApp en Admin → Pagos");
+  if (!selectedTent) return alert("Selecciona un toldo disponible primero");
+  if (!userForm.name || !userForm.phone) { alert("Completa tu nombre y teléfono."); return; }
 
+  // Construye teléfono con prefijo y solo dígitos
+  const phoneE164 = `${userForm.phoneCountry}${(userForm.phone || '').replace(/[^0-9]/g, '')}`;
+
+  const cur    = data.payments.currency || "USD";
+  const extras = cart.length
+    ? cart.map(x => `• ${x.name} x${x.qty} — ${cur} ${(x.price * x.qty).toFixed(2)}`).join("\n")
+    : "• Sin extras";
+
+  const metodo = payTab === "mp"   ? "Mercado Pago"
+               : payTab === "pm"   ? "Pago Móvil"
+               : payTab === "zelle"? "Zelle"
+               : "—";
+
+  const fechaTxt = new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString();
+  const totalLine = `*Total estimado:* ${cur} ${total.toFixed(2)}${
+    data.payments.usdToVES ? ` (Bs ${(total * (data.payments.usdToVES || 0)).toFixed(2)})` : ""
+  }`;
+
+  const msg = [
+    `Hola 👋, me gustaría realizar una *reserva en ${data.brand?.name || "su establecimiento"}*.`,
+    "",
+    `*Código:* ${resCode}`,
+    `*Toldo:* #${selectedTent?.id}`,
+    `*Fecha/hora:* ${fechaTxt}`,
+    "",
+    "*Cliente*",
+    `• Nombre: ${userForm.name}`,
+    `• Teléfono (WhatsApp): ${phoneE164}`,
+    userForm.email ? `• Email: ${userForm.email}` : null,
+    "",
+    "*Extras*",
+    extras,
+    "",
+    totalLine,
+    `*Método de pago:* ${metodo}`,
+    "",
+    "Adjunto mi comprobante. ¿Podrían confirmar la reserva cuando esté verificado? ✅",
+    "¡Muchas gracias! 🙌"
+  ].filter(Boolean).join("\n");
+
+  const txt = encodeURIComponent(msg);
+  window.open(`https://wa.me/${num}?text=${txt}`, "_blank");
+};
   // ===== Admin handlers (autosave sincronizado) =====
   const onChangeBrandName = async (v)=> mergeState({ brand: { ...data.brand, name: v } }, "Editar marca");
   const onChangeLogoUrl = async (v)=> mergeState({ brand: { ...data.brand, logoUrl: v } }, "Editar logo");
