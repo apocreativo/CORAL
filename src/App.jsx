@@ -250,26 +250,26 @@ usePolling(async () => {
 
   // ===== Helpers de merge =====
   
-  const mergeState = async (patch, logMsg) => {
-    try{
-      const next = await kvMerge(STATE_KEY, patch, REV_KEY);
-      if(next){
-        setData(next);
-        const r = await kvGet(REV_KEY);
-        setRev(r||0); setSessionRevParam(String(r||0));
-        if(logMsg) logEvent(setData, "action", logMsg);
-        return;
-      }
-      throw new Error("kvMerge returned null");
-    }catch(e){
-      setData(s => ({ ...s, ...patch }));
-      setRev(r=> (r||0)+1);
-      setSessionRevParam(v=> String((+v||0)+1));
-      if(logMsg) logEvent(setData, "action (local)", logMsg);
+const mergeState = async (patch, logMsg) => {
+  try {
+    const next = await kvMerge(STATE_KEY, patch, REV_KEY);
+    if (next) {
+      setData(next);
+      const r = Number(await kvGet(REV_KEY)) || 0;
+      setRev(r);
+      setSessionRevParam(String(r));
+      if (logMsg) logEvent(setData, 'action', logMsg);
+      return;
     }
-  };
-
-
+    throw new Error('kvMerge returned null');
+  } catch (e) {
+    // fallback local si KV falla
+    setData(s => ({ ...s, ...patch }));
+    setRev(n => (n || 0) + 1);
+    setSessionRevParam(v => String((+v || 0) + 1));
+    if (logMsg) logEvent(setData, 'action (local)', logMsg);
+  }
+};
   // ===== Toldo: selección y drag =====
   const onTentClick = (t) => {
     if(editingMap) return;
