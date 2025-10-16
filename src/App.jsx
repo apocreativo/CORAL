@@ -308,27 +308,33 @@ const mergeState = async (patch, logMsg) => {
   const emptyCart = () => setCart([]);
 
   // ===== Reserva =====
-  async function reservar(){
-    if(!selectedTent) { alert("Selecciona un toldo disponible primero"); return; }
-    const expiresAt = addMinutesISO(HOLD_MINUTES);
-    const reservation = {
-      id: crypto.randomUUID(),
-      tentId: selectedTent.id,
-      status: "pending",
-      createdAt: nowISO(),
-      expiresAt,
-      customer: { name: userForm.name||"", phone: userForm.phone||"", email: userForm.email||"" },
-      cart,
-    };
-    // set 'pr' if still available
-    const t = data.tents.find(x=> x.id===selectedTent.id);
-    if(!t || t.state!=="av"){ alert("Ese toldo ya no está disponible"); return; }
-    const tentsUpd = data.tents.map(x=> x.id===t.id ? { ...x, state:"pr" } : x);
-    const reservationsUpd = [reservation, ...data.reservations];
-    await mergeState({ tents: tentsUpd, reservations: reservationsUpd }, `Reserva creada toldo #${t.id}`);
-    setMyPendingResId(reservation.id);
-    setPayOpen(true);
-  }
+async function reservar() {
+  if (!selectedTent) { alert('Selecciona un toldo disponible primero'); return; }
+  const t = data.tents.find(x => x.id === selectedTent.id);
+  if (!t || t.state !== 'av') { alert('Ese toldo ya no está disponible'); return; }
+
+  const expiresAt = addMinutesISO(HOLD_MINUTES);
+  const reservation = {
+    id: crypto.randomUUID(),
+    tentId: selectedTent.id,
+    status: 'pending',
+    createdAt: nowISO(),
+    expiresAt,
+    customer: {
+      name: userForm.name || '',
+      phone: `${userForm.phoneCountry}${(userForm.phone || '').replace(/[^0-9]/g, '')}`,
+      email: userForm.email || ''
+    },
+    cart: [...cart]
+  };
+
+  const tentsUpd = data.tents.map(x => x.id === t.id ? { ...x, state: 'pr' } : x);
+  const reservationsUpd = [reservation, ...data.reservations];
+
+  await mergeState({ tents: tentsUpd, reservations: reservationsUpd }, `Reserva creada toldo #${t.id}`);
+  setMyPendingResId(reservation.id);
+  setPayOpen(true);
+}
   async function releaseTent(tentId, resId, toState="av", newStatus="expired"){
     const tentsUpd = data.tents.map(t=> t.id===tentId ? { ...t, state: toState } : t);
     const resUpd = data.reservations.map(r=> r.id===resId ? { ...r, status:newStatus } : r);
